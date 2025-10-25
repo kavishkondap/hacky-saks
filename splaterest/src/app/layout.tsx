@@ -10,7 +10,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <header className="site-header">
-          <div className="brand">Gaussian Tours</div>
         </header>
         {children}
       </body>
