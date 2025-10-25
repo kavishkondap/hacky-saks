@@ -1,0 +1,42 @@
+/* src/app/page.module.css */
+.page {
+min-height: 100vh;
+display: grid;
+place-items: center;
+padding: 24px;
+}
+
+.main {
+width: min(960px, 92vw);
+display: grid;
+gap: 16px;
+text-align: center;
+}
+
+.logo {
+filter: drop-shadow(0 1px 0 rgba(255,255,255,0.2));
+}
+
+.intro {
+color: #666;
+line-height: 1.5;
+}
+
+.ctas {
+display: flex;
+gap: 12px;
+justify-content: center;
+flex-wrap: wrap;
+}
+
+.primary, .secondary {
+display: inline-flex;
+align-items: center;
+gap: 8px;
+padding: 10px 14px;
+border-radius: 8px;
+text-decoration: none;
+border: 1px solid rgba(255,255,255,0.15);
+}
+.primary { background: #111; }
+.secondary { background: #0b0b0b; }

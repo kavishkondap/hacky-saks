@@ -1,0 +1,160 @@
+/* ---------- Base / Reset ---------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+               "Apple Color Emoji", "Segoe UI Emoji";
+  /* Orange → Red → Yellow gradient */
+  background: linear-gradient(145deg, #ff7a00 0%, #e63946 50%, #ffd166 100%);
+  background-attachment: fixed;
+  color: #111;
+}
+
+img, svg, video, canvas { max-width: 100%; height: auto; display: block; }
+a { color: inherit; }
+
+/* ---------- Optional header / brand ---------- */
+.site-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; color: #111;
+}
+.brand { font-weight: 700; letter-spacing: .3px; font-size: 18px; }
+
+/* ---------- Rolling Tiles Layout ---------- */
+/* 3 thinner columns; shorter column height */
+.tiles-wrap {
+  display: grid;
+  grid-template-columns: repeat(3, 220px);
+  gap: 12px;
+  height: 70vh;          /* shorter */
+  overflow: hidden;
+  margin-inline: auto;   /* center on page */
+}
+
+/* column viewport */
+.col-outer {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+}
+
+/* seamless vertical loop; list is duplicated in JS */
+@keyframes scrollY {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+.col-inner {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  /* row height is driven by tile aspect ratio below; no fixed auto-rows */
+  animation-name: scrollY;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.col-outer:hover .col-inner,
+.col-outer:focus-within .col-inner { animation-play-state: paused; }
+
+/* ---------- Tiles ---------- */
+.tile {
+  all: unset;
+  display: block;
+  cursor: pointer;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.10);
+  transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+.tile:focus-visible { outline: 2px solid #7aa2ff; outline-offset: 2px; }
+.tile:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.10);
+  filter: brightness(1.06);
+}
+
+/* Thumbnail area — iPhone 14 Pro Max portrait ratio 1290×2796 */
+.tile-visual {
+  width: 100%;
+  aspect-ratio: 1290 / 2796;      /* keeps every tile same shape */
+  background-color: #111;
+  background-size: cover;
+  background-position: center;
+}
+
+/* Label bar */
+.tile-label {
+  padding: 10px 12px;
+  color: #f3f3f3;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+/* Fallback label (if no image) */
+.tile-fallback { color: #bbb; font-size: 14px; opacity: .75; }
+
+/* ---------- Modal Footer Buttons (Download / Upload) ---------- */
+.modal-footer {
+  display: flex; gap: 10px; padding: 10px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+  background: rgba(0,0,0,0.35);
+}
+.btn {
+  appearance: none;
+  border: 1px solid rgba(255,255,255,0.14);
+  background: #0f0f0f;
+  color: #f3f3f3;
+  padding: 8px 12px; border-radius: 8px;
+  text-decoration: none; cursor: pointer;
+}
+.btn:hover { filter: brightness(1.06); }
+
+/* Container that stacks the title and the columns */
+.gallery-wrap {
+  display: grid;
+  gap: 12px;              /* space between title and tiles */
+  justify-items: center;  /* center the title horizontally */
+}
+
+/* Title */
+.site-title {
+  /* inherits your Apple system font from body */
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  font-size: clamp(24px, 4vw, 40px);
+  margin: 0;              /* keep it tight */
+  color: #fff;            /* dark text on warm gradient; change to #fff if you prefer light */
+}
+
+/* Center the tiles on the page */
+.page-center {
+  /* fill the viewport and center children */
+  min-height: 100svh;            /* better on mobile than 100vh */
+  display: grid;
+  place-items: center;           /* centers horizontally & vertically */
+  padding-inline: 16px;          /* small side breathing room */
+}
+
+/* Nudge the centered content slightly lower */
+.page-center--lower {
+  transform: translateY(5vh);    /* move down “a little” (~5% of viewport height) */
+}
+
+/* If you prefer no transform, use margin-top instead:
+.page-center--lower { margin-top: 5vh; }
+*/
+
+/* ---------- Accessibility ---------- */
+@media (prefers-reduced-motion: reduce) { .col-inner { animation: none; } }
