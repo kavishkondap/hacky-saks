@@ -5,15 +5,14 @@
     <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
   </head>
   <body>
-    <a-scene renderer="antialias: false" stats>
-      <a-entity position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
-        <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
-        <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
-      </a-entity>
-      <a-entity meta-touch-controls="hand: right" thumbstick-logging></a-entity>
-      <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
-    </a-scene>
-  </body>
+  <a-scene renderer="antialias: false" stats>
+    <a-entity position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
+      <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
+      <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
+    </a-entity>
+    <a-entity id="right-controller" meta-touch-controls="hand: right" thumbstick-logging></a-entity>
+    <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
+  </a-scene>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -47,7 +46,7 @@
         }
       }
     });
-
-    
   </script>
+  
+  </body>
 </html>
