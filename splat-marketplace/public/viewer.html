@@ -69,12 +69,12 @@
           const sourcePath = params.get('src');           // e.g. "public/train.splat"
           el.setAttribute('gaussian_splatting', `src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/${sourcePath};`);
         }
-        if (urlParams.has('rot')) {
-          const rotation = urlParams.get('rot');
+        if (params.has('rot')) {
+          const rotation = params.get('rot');
           el.setAttribute('rotation', rotation);
         }
-        if (urlParams.has('pos')) {
-          const position = urlParams.get('pos');
+        if (params.has('pos')) {
+          const position = params.get('pos');
           el.setAttribute('position', position);
         }
       })();
