@@ -7,11 +7,11 @@
   <body>
     <a-scene renderer="antialias: false" stats>
       <a-entity position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
-        <a-sphere position="0 0 0.5" radius="0.5" color="#EF2D5E"></a-sphere>
+        <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
         <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
 
-        <a-entity meta-touch-controls="hand: left"></a-entity>
-        <a-entity meta-touch-controls="hand: right"></a-entity>
+        <a-entity meta-touch-controls="hand: left" thumbstick-logging></a-entity>
+        <a-entity meta-touch-controls="hand: right" thumbstick-logging></a-entity>
       </a-entity>
       <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
     </a-scene>
@@ -24,6 +24,8 @@
         const sourceID = urlParams.get('src');
         splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
     }
+
+    AFRAME.regi
 
     // Wait for A-Frame scene to load
     const scene = document.querySelector('hand: left');
@@ -53,5 +55,19 @@
       document.querySelector('a-scene').appendChild(newEntity);
 
     });
+
+    AFRAME.registerComponent('thumbstick-logging',{
+      init: function () {
+        this.el.addEventListener('thumbstickmoved', this.logThumbstick);
+      },
+      logThumbstick: function (evt) {
+        if (evt.detail.y > 0.95) { console.log("DOWN"); }
+        if (evt.detail.y < -0.95) { console.log("UP"); }
+        if (evt.detail.x < -0.95) { console.log("LEFT"); }
+        if (evt.detail.x > 0.95) { console.log("RIGHT"); }
+      }
+    });
+
+    
   </script>
 </html>
