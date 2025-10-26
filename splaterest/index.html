@@ -35,18 +35,20 @@
         if (evt.detail.x < -0.95) { console.log("LEFT"); }
         if (evt.detail.x > 0.95) { console.log("RIGHT"); }
 
-        sound = new Audio('./public/oh-my-god-meme.mp3');
-        sound.play();
-        camera = document.querySelector('[camera]');
-        position = camera.getAttribute('position');
-        console.log(position);
-        camera.setAttribute('position', {
-            x: position.x + (evt.detail.x * 0.1),
-            y: position.y,
-            z: position.z + (evt.detail.y * 0.1)
-        });
+        if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
+          sound = new Audio('./public/oh-my-god-meme.mp3');
+          sound.play();
+          camera = document.querySelector('[camera]');
+          position = camera.getAttribute('position');
+          console.log(position);
+          camera.setAttribute('position', {
+              x: position.x + (evt.detail.x * 0.1),
+              y: position.y,
+              z: position.z + (evt.detail.y * 0.1)
+          });
 
-      document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
+          document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
+        }
       }
     });
   </script>
