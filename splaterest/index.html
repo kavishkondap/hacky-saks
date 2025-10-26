@@ -9,14 +9,12 @@
       <a-entity position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
         <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
         <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
-
-        <a-entity id="left-controller" meta-touch-controls="hand: left" thumbstick-logging></a-entity>
-        <a-entity id="right-controller" meta-touch-controls="hand: right" thumbstick-logging></a-entity>
-        <a-entity
-            id="controller-data"
-            controller-listener="leftControllerId:  #left-controller;
-                                rightControllerId: #right-controller;">
-        </a-entity>
+      </a-entity>
+      <a-entity id="right-controller" meta-touch-controls="hand: right" thumbstick-logging></a-entity>
+      <a-entity
+          id="controller-data"
+          controller-listener="leftControllerId:  #left-controller;
+                              rightControllerId: #right-controller;">
       </a-entity>
       <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
     </a-scene>
@@ -30,100 +28,19 @@
         splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
     }
 
-    AFRAME.regi
     const SOUND = new Audio('./public/oh-my-god-meme.mp3');
-    	// need to run javascript code after a-scene entities and components are loaded
-    AFRAME.registerComponent('screen-controls', 
-      {
-        init: function () 
-        {
-            this.component = document.getElementById("camera").components["extended-wasd-controls"];
-            this.joystick1 = new Joystick("stick1", 64, 8);
-            this.joystick2 = new Joystick("stick2", 64, 8);
-          },
-
-          tick: function(time, deltaTime)
-          {
-            // console.log( joystick1.value )
-            // console.log( this.component.movePercent )
-            this.component.movePercent.x   =  this.joystick1.value.x;
-            this.component.movePercent.z   = -this.joystick1.value.y;
-            this.component.rotatePercent.x = -this.joystick2.value.y;
-            this.component.rotatePercent.y = -this.joystick2.value.x;
-            
-            
-          }
-      });
-
-      AFRAME.registerComponent('text-display', {
-        
-        init: function()
-        {
-          this.controllerData = document.querySelector("#controller-data").components["controller-listener"];
-          this.text = "";
-        },
-
-        tick: function()
-        {
-          this.text = 
-                    "Left Controller:" + "\n" +
-                    "Joystick X: " + this.controllerData.leftAxisX + "\n" +
-                    "Joystick Y: " + this.controllerData.leftAxisY + "\n" + 
-                    "[Y] Button: " + this.controllerData.buttonY.pressing + "\n" +
-                    "[X] Button: " + this.controllerData.buttonX.pressing + "\n" +
-                    "   Trigger: " + this.controllerData.leftTrigger.pressing + "\n" +
-                    "      Grip: " + this.controllerData.leftGrip.pressing + "\n" +
-                    "----------------------------------- \n" +
-                    "Right Controller:" + "\n" +
-                    "Joystick X: " + this.controllerData.rightAxisX + "\n" +
-                    "Joystick Y: " + this.controllerData.rightAxisY + "\n" +
-                    "[B] Button: " + this.controllerData.buttonB.pressing + "\n" +
-                    "[A] Button: " + this.controllerData.buttonA.pressing + "\n" +
-                    "   Trigger: " + this.controllerData.rightTrigger.pressing + "\n" +
-                    "      Grip: " + this.controllerData.rightGrip.pressing + "\n";
-                    
-          this.el.setAttribute( "text", "value", this.text );
-        },
-        
-      });
-
-    // Wait for A-Frame scene to load
-    <!-- const scene = document.querySelector('hand: left');
-    scene.addEventListener('triggerdown', function (evt) {
-      console.log('LEFT HAND CLICKED!');
-      const sound = new Audio('./public/oh-my-god-meme.mp3');
-      sound.play();
-      // Create a new aquare entity
-      const newEntity = document.createElement('a-box');
-      newEntity.setAttribute('position', '0 1.5 -2');
-      newEntity.setAttribute('rotation', '0 45 0');
-      newEntity.setAttribute('color', '#4CC3D9');
-      // Add the new entity to the scene
-      document.querySelector('a-scene').appendChild(newEntity);
-    });
-    const scene2 = document.querySelector('hand: right');
-    scene2.addEventListener('triggerdown', function (evt) {
-      console.log('RIGHT HAND CLICKED!');
-      const sound = new Audio('./public/oh-my-god-meme.mp3');
-      sound.play();
-      // Create a new aquare entity
-      const newEntity = document.createElement('a-box');
-      newEntity.setAttribute('position', '0 1.5 -2');
-      newEntity.setAttribute('rotation', '0 45 0');
-      newEntity.setAttribute('color', '#4CC3D9');
-      // Add the new entity to the scene
-      document.querySelector('a-scene').appendChild(newEntity);
-
-    });
-
-    AFRAME.registerComponent('thumbstick-logging',{
+    
+    AFRAME.registerComponent('thumbstick-logging', {
       init: function () {
-        this.el.addEventListener('thumbstickmoved', this.logThumbstick);
-      },
-      logThumbstick: function (evt) {
-        SOUND.play();
+        this.el.addEventListener('thumbstickmoved', (evt) => {
+          const x = evt.detail.x;
+          const y = evt.detail.y;
+          if (y > 0.95) {
+            SOUND.play();
+          }
+        });
       }
-    }); -->
+    });
 
     
   </script>
