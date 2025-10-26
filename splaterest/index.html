@@ -16,7 +16,6 @@
   </a-scene>
 
   <script>
-    document.querySelector('[camera]').setAttribute('position', '0 0 0');
     document.querySelector('#rotating-entity').setAttribute('position', '0 .2 -2.0');
     const urlParams = new URLSearchParams(window.location.search);
     const splat = document.getElementById('splat-viewer');
@@ -28,25 +27,15 @@
     AFRAME.registerComponent('thumbstick-logging',{
       init: function () {
         this.logThumbstick = this.logThumbstick.bind(this);
+        this.logTrigger = this.logTrigger.bind(this);
         this.el.addEventListener('thumbstickmoved', this.logThumbstick);
+        this.el.addEventListener('triggerdown', this.logTrigger);
+      },
+      logTrigger: function (evt) {
+          document.querySelector('#rotating-entity').setAttribute('position', '0 .2 -2.0');
       },
       logThumbstick: function (evt) {
-        if (evt.detail.y > 0.95) { console.log("DOWN"); }
-        if (evt.detail.y < -0.95) { console.log("UP"); }
-        if (evt.detail.x < -0.95) { console.log("LEFT"); }
-        if (evt.detail.x > 0.95) { console.log("RIGHT"); }
-
         if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
-
-          camera = document.querySelector('[camera]');
-          position = camera.getAttribute('position');
-          console.log(position);
-          camera.setAttribute('position', {
-              x: position.x + (evt.detail.x * 0.1),
-              y: position.y,
-              z: position.z + (evt.detail.y * 0.1)
-          });
-
           document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
         }
       }
