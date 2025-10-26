@@ -9,6 +9,9 @@
       <a-entity position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
         <a-sphere position="0 0 0.5" radius="0.5" color="#EF2D5E"></a-sphere>
         <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
+
+        <a-entity meta-touch-controls="hand: left"></a-entity>
+        <a-entity meta-touch-controls="hand: right"></a-entity>
       </a-entity>
       <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
     </a-scene>
@@ -21,5 +24,15 @@
         const sourceID = urlParams.get('src');
         splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
     }
+
+    // Wait for A-Frame scene to load
+    const scene = document.querySelector('hand: left');
+    scene.addEventListener('triggerdown', function (evt) {
+      console.log('LEFT HAND CLICKED!');
+    });
+    const scene2 = document.querySelector('hand: right');
+    scene2.addEventListener('triggerdown', function (evt) {
+      console.log('RIGHT HAND CLICKED!');
+    });
   </script>
 </html>
