@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
+  </head>
+  <body>
+    <a-scene renderer="antialias: false" stats>
+      <a-entity position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
+        <a-sphere position="0 0 0.5" radius="0.5" color="#EF2D5E"></a-sphere>
+        <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
+      </a-entity>
+      <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
+    </a-scene>
+  </body>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const splat = document.getElementById('splat-viewer');
+    if (urlParams.has('src')) {
+        const sourceID = urlParams.get('src');
+        splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
+    }
+  </script>
+</html>

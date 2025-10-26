@@ -1,25 +1,211 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-    <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
-  </head>
-  <body>
-    <a-scene renderer="antialias: false" stats>
-      <a-entity position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
-        <a-sphere position="0 0 0.5" radius="0.5" color="#EF2D5E"></a-sphere>
-        <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
-      </a-entity>
-      <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
-    </a-scene>
-  </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splat Gallery</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <script>
-    const urlParams = new URLSearchParams(window.location.search);
-    const splat = document.getElementById('splat-viewer');
-    if (urlParams.has('src')) {
-        const sourceID = urlParams.get('src');
-        splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
-    }
-  </script>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f0f0f0;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .masonry-container {
+            column-count: 4;
+            column-gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            break-inside: avoid;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+
+        .card-image {
+            width: 100%;
+            display: block;
+            background-color: #e0e0e0;
+            min-height: 200px;
+            object-fit: cover;
+        }
+
+        .card-caption {
+            padding: 15px;
+            color: #333;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .masonry-container {
+                column-count: 3;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .masonry-container {
+                column-count: 2;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .masonry-container {
+                column-count: 1;
+            }
+
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #d32f2f;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Splat Gallery</h1>
+        <p>Explore Gaussian Splats</p>
+    </div>
+
+    <div id="loading" class="loading">Loading gallery...</div>
+    <div id="error" class="error" style="display: none;"></div>
+    <div id="gallery" class="masonry-container"></div>
+
+    <script>
+        // Configuration
+        // const S3_BUCKET_URL = 'https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com';
+        const S3_BUCKET_URL = 'public'
+        const GALLERY_JSON_PATH = 'gallery.json'; // Path to your JSON file in S3
+
+        // Fetch gallery data from S3
+        async function loadGallery() {
+            const loadingEl = document.getElementById('loading');
+            const errorEl = document.getElementById('error');
+            const galleryEl = document.getElementById('gallery');
+
+            try {
+                const response = await fetch(`${S3_BUCKET_URL}/${GALLERY_JSON_PATH}`);
+
+                // if (!response.ok) {
+                //     throw new Error(`Failed to load gallery data: ${response.status}`);
+                // }
+
+                const galleryData = await response.json();
+
+                loadingEl.style.display = 'none';
+
+                if (!Array.isArray(galleryData) || galleryData.length === 0) {
+                    errorEl.textContent = 'No items found in gallery';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                renderGallery(galleryData);
+            } catch (error) {
+                console.error('Error loading gallery:', error);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = `Error loading gallery: ${error.message}`;
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // Render gallery cards
+        function renderGallery(items) {
+            const galleryEl = document.getElementById('gallery');
+
+            items.forEach(item => {
+                const card = createCard(item);
+                galleryEl.appendChild(card);
+            });
+        }
+
+        // Create individual card
+        function createCard(item) {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            // Build thumbnail URL (supports both absolute and relative paths)
+            let thumbnailUrl = item.thumbnail;
+            if (!thumbnailUrl.startsWith('http')) {
+                thumbnailUrl = `${S3_BUCKET_URL}/${thumbnailUrl}`;
+            }
+
+            // Create card HTML
+            card.innerHTML = `
+                <img class="card-image"
+                     src="${thumbnailUrl}"
+                     alt="${item.caption || 'Splat thumbnail'}"
+                     loading="lazy"
+                     onerror="this.style.display='none'">
+                <div class="card-caption">${item.caption || 'Untitled'}</div>
+            `;
+
+            // Add click handler to navigate to viewer
+            card.addEventListener('click', () => {
+                window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}`;
+            });
+
+            return card;
+        }
+
+        // Initialize gallery on page load
+        loadGallery();
+    </script>
+</body>
 </html>
