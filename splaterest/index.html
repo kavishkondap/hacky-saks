@@ -38,10 +38,10 @@
         this.el.addEventListener('bbuttondown', this.logBbutton);
       },
       logAbutton: function (evt) {
-        document.querySelector('#cameraRig').object3D.position.z += 0.1;
+        document.querySelector('#cameraRig').object3D.position.y += 0.1;
       },
       logBbutton: function (evt) {
-        document.querySelector('#cameraRig').object3D.position.z -= 0.1;
+        document.querySelector('#cameraRig').object3D.position.y -= 0.1;
       },
       logTrigger: function (evt) {
         document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
@@ -51,10 +51,10 @@
           document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
         }
         xdelta = evt.detail.x;
-        ydelta = evt.detail.y;
+        zdelta = evt.detail.y;
 
         document.querySelector('#cameraRig').object3D.position.x += xdelta * 0.1;
-        document.querySelector('#cameraRig').object3D.position.y += ydelta * 0.1;
+        document.querySelector('#cameraRig').object3D.position.z += zdelta * 0.1;
 
 
       }
