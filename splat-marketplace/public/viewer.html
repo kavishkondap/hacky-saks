@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>WebXR Splat Viewer + Capture</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
+    <style>
+      html, body { margin:0; height:100%; background:#000; }
+      .hud {
+        position: fixed; left: 8px; bottom: 8px; right: 8px; z-index: 20;
+        background: rgba(0,0,0,.55); color: #fff; padding: 8px 10px; border-radius: 10px;
+        font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .row { display:flex; gap:8px; flex-wrap: wrap; align-items: center; margin: 4px 0; }
+      .mono { white-space: pre-wrap; }
+      .ok { color:#9fe; } .warn { color:#ff9; } .err { color:#f99; }
+      button { cursor:pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="hud">
+      <div class="row">Hold <b>A</b> on the right controller to record. Release to stop.</div>
+      <div id="status" class="row mono ok">idle</div>
+      <div class="row"><button id="desktopTest">Desktop test (hold mouse)</button></div>
+      <div id="result" class="row mono"></div>
+    </div>
+
+    <a-scene renderer="antialias: false" stats>
+      <a-entity id="rig" position="0 1.6 0">
+        <a-entity id="camera" camera look-controls wasd-controls></a-entity>
+      </a-entity>
+
+      <a-entity position="0 1.6 -2"
+                animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
+        <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
+        <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
+      </a-entity>
+
+      <a-entity id="left-controller"  oculus-touch-controls="hand: left"></a-entity>
+      <a-entity id="right-controller" oculus-touch-controls="hand: right"
+                capture-on-hold="button: a"></a-entity>
+
+      <a-entity id="splat-viewer"
+                position="0 1.5 -2" rotation="0 0 0"
+                gaussian-splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;">
+      </a-entity>
+    </a-scene>
+
+    <script>
+      // Use ?src= as-is (absolute or relative). If missing, keep default URL above.
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const el = document.getElementById('splat-viewer');
+        if (params.has('src')) {
+          const raw = params.get('src');
+          el.setAttribute('gaussian-splatting', `src: ${raw};`);
+        }
+      })();
+
+      const statusEl = document.getElementById('status');
+      const resultEl = document.getElementById('result');
+      function status(msg, cls='ok'){ statusEl.className = 'row mono '+cls; statusEl.textContent = msg; }
+
+      function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(String(reader.result).split(',')[1]||'');
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      AFRAME.registerComponent('capture-on-hold', {
+        schema: { button: { type:'string', default:'a' } },
+        init() {
+          this.mediaStream = null;
+          this.mediaRecorder = null;
+          this.chunks = [];
+          this.recording = false;
+          this._pendingScreenshot = null;
+
+          const btn = this.data.button.toLowerCase();
+          this.onDown = () => this.startCapture();
+          this.onUp   = () => this.stopCapture();
+          this.el.addEventListener(`${btn}buttondown`, this.onDown);
+          this.el.addEventListener(`${btn}buttonup`,   this.onUp);
+        },
+        async startCapture() {
+          if (this.recording) return;
+          this.recording = true;
+
+          const scene = this.el.sceneEl;
+          const canvas = scene.canvas || scene.renderer?.domElement;
+          const screenshotBlob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+          this._pendingScreenshot = screenshotBlob;
+
+          try {
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (e) { status('mic permission denied', 'err'); this.recording = false; return; }
+          this.chunks = [];
+          this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: 'audio/webm' });
+          this.mediaRecorder.ondataavailable = e => { if (e.data.size) this.chunks.push(e.data); };
+          this.mediaRecorder.start();
+          status('recording… (release A to stop)');
+        },
+        async stopCapture() {
+          if (!this.recording) return;
+          this.recording = false;
+
+          await new Promise(resolve => { this.mediaRecorder.onstop = resolve; this.mediaRecorder.stop(); });
+          this.mediaStream.getTracks().forEach(t => t.stop());
+          const audioBlob = new Blob(this.chunks, { type: 'audio/webm' });
+          status('transcribing (Fish)…');
+
+          let transcript = '';
+          try {
+            const form = new FormData();
+            form.append('audio', audioBlob, 'clip.webm');
+            const r = await fetch('/api/asr', { method: 'POST', body: form });
+            const j = await r.json();
+            if (!r.ok) throw new Error(j.error || 'asr_failed');
+            transcript = j.text || '';
+          } catch (e) { status('Fish STT failed: ' + e.message, 'err'); }
+
+          status('asking Claude…');
+          let output = '';
+          try {
+            const img = await blobToBase64(this._pendingScreenshot);
+            const r = await fetch('/api/claude', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                transcript,
+                image_base64: img,
+                prompt: 'Analyze the VR scene image and the user transcript. Return a concise, helpful answer.'
+              })
+            });
+            const j = await r.json();
+            if (!r.ok) throw new Error(j.error || 'claude_failed');
+            output = j.output || '';
+          } catch (e) { status('Claude failed: ' + e.message, 'err'); }
+
+          window.lastClaudeOutput = output;
+          resultEl.textContent = output || '(no output)';
+          status('done.');
+          this._pendingScreenshot = null;
+          this.mediaStream = null; this.mediaRecorder = null; this.chunks = [];
+        }
+      });
+
+      (function() {
+        const btn = document.getElementById('desktopTest');
+        let rec=null, stream=null, chunks=[], screenshotBlob=null;
+        btn.onmousedown = async () => {
+          const scene = document.querySelector('a-scene');
+          const canvas = scene.canvas || scene.renderer?.domElement;
+          screenshotBlob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+          try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+          catch (e) { status('mic denied (desktop test)', 'err'); return; }
+          chunks=[]; rec = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+          rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+          rec.start(); status('recording… (release mouse to stop)');
+        };
+        btn.onmouseup = async () => {
+          if (!rec) return;
+          await new Promise(r => { rec.onstop = r; rec.stop(); });
+          stream.getTracks().forEach(t => t.stop());
+          const audioBlob = new Blob(chunks, { type:'audio/webm' });
+
+          let transcript=''; try{
+            const f = new FormData(); f.append('audio', audioBlob, 'clip.webm');
+            const r = await fetch('/api/asr', { method:'POST', body:f });
+            const j = await r.json(); if(!r.ok) throw new Error(j.error||'asr_failed');
+            transcript = j.text||'';
+          }catch(e){ status('Fish STT failed: '+e.message,'err'); }
+
+          try{
+            const b64 = await blobToBase64(screenshotBlob);
+            const r = await fetch('/api/claude', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ transcript, image_base64: b64, prompt: 'Describe key details and insights.' })
+            });
+            const j = await r.json(); if(!r.ok) throw new Error(j.error||'claude_failed');
+            window.lastClaudeOutput = j.output||''; resultEl.textContent = window.lastClaudeOutput; status('done.');
+          }catch(e){ status('Claude failed: '+e.message,'err'); }
+        };
+        btn.onmouseleave = btn.onmouseup;
+      })();
+    </script>
+  </body>
+</html>

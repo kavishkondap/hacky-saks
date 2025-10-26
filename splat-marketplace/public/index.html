@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splat Gallery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tiempos+Headline:wght@400;600;700&family=Charter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Literata:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Literata', 'Georgia', 'Times New Roman', serif;
+            background: #ffffff;
+            color: #1a1a1a;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #4a4a4a;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #4a4a4a;
+        }
+
+        .gallery-wrapper {
+            position: relative;
+            height: calc(100vh - 150px);
+            overflow: hidden;
+        }
+
+        .masonry-container {
+            column-count: 3;
+            column-gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            break-inside: avoid;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            z-index: 5;
+        }
+
+        .card-image-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .card-image {
+            width: 100%;
+            display: block;
+            background-color: #e0e0e0;
+            min-height: 200px;
+            object-fit: cover;
+        }
+
+        .card-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 25px 15px 18px 15px;
+            color: #fff;
+            font-size: 1.05rem;
+            font-weight: 600;
+            line-height: 1.4;
+            text-align: center;
+            background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0) 100%);
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .masonry-container {
+                column-count: 2;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .masonry-container {
+                column-count: 2;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .masonry-container {
+                column-count: 1;
+            }
+
+            body {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ff6b6b;
+            font-size: 1.1rem;
+        }
+
+        .upload-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #e8e8e8;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 1000;
+        }
+
+        .upload-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+        }
+
+        .upload-button svg {
+            width: 28px;
+            height: 28px;
+            fill: #2a2a2a;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-status {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 0.9rem;
+            color: #1a1a1a;
+            display: none;
+            z-index: 1000;
+            max-width: 300px;
+        }
+
+        .upload-status.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Splat Gallery</h1>
+        <p>Explore Gaussian Splats</p>
+    </div>
+
+    <div id="loading" class="loading">Loading gallery...</div>
+    <div id="error" class="error" style="display: none;"></div>
+    <div class="gallery-wrapper">
+        <div id="gallery" class="masonry-container"></div>
+    </div>
+
+    <!-- Upload Button -->
+    <input type="file" id="uploadInput" class="upload-input" accept="video/*">
+    <div class="upload-button" onclick="document.getElementById('uploadInput').click()">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+        </svg>
+    </div>
+    <div id="uploadStatus" class="upload-status"></div>
+
+    <script>
+        // Configuration
+        // const S3_BUCKET_URL = 'https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com';
+        const S3_BUCKET_URL = 'public'
+        const GALLERY_JSON_PATH = 'gallery.json'; // Path to your JSON file in S3
+
+        // Fetch gallery data from S3
+        async function loadGallery() {
+            const loadingEl = document.getElementById('loading');
+            const errorEl = document.getElementById('error');
+            const galleryEl = document.getElementById('gallery');
+
+            try {
+                const response = await fetch(`${S3_BUCKET_URL}/${GALLERY_JSON_PATH}`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load gallery data: ${response.status}`);
+                }
+
+                const galleryData = await response.json();
+
+                loadingEl.style.display = 'none';
+
+                if (!Array.isArray(galleryData) || galleryData.length === 0) {
+                    errorEl.textContent = 'No items found in gallery';
+                    errorEl.style.display = 'block';
+                    return;
+                }
+
+                renderGallery(galleryData);
+            } catch (error) {
+                console.error('Error loading gallery:', error);
+                loadingEl.style.display = 'none';
+                errorEl.textContent = `Error loading gallery: ${error.message}`;
+                errorEl.style.display = 'block';
+            }
+        }
+
+        // Render gallery cards
+        function renderGallery(items) {
+            const galleryEl = document.getElementById('gallery');
+
+            items.forEach(item => {
+                const card = createCard(item);
+                galleryEl.appendChild(card);
+            });
+
+            // Start the infinite scroll animation
+            startInfiniteScroll();
+        }
+
+        // Infinite scroll that wraps cards from top to bottom
+        function startInfiniteScroll() {
+            const wrapper = document.querySelector('.gallery-wrapper');
+            const container = document.querySelector('.masonry-container');
+
+            // Clone all cards and append them for seamless loop
+            const cards = Array.from(container.children);
+            cards.forEach(card => {
+                const clone = card.cloneNode(true);
+                // Re-attach click handler to clone
+                const item = card._itemData;
+                if (item) {
+                    clone.addEventListener('click', () => {
+                        window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}`;
+                    });
+                }
+                container.appendChild(clone);
+            });
+
+            let scrollPosition = 0;
+            const scrollSpeed = 0.5; // pixels per frame
+            const originalHeight = container.offsetHeight / 2; // Half because we duplicated
+
+            function animate() {
+                scrollPosition += scrollSpeed;
+
+                // If we've scrolled past the original content, reset seamlessly
+                if (scrollPosition >= originalHeight) {
+                    scrollPosition = 0;
+                }
+
+                // Apply the scroll
+                container.style.transform = `translateY(-${scrollPosition}px)`;
+
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        // Create individual card
+        function createCard(item) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card._itemData = item; // Store data for cloning
+
+            // Build thumbnail URL (supports both absolute and relative paths)
+            let thumbnailUrl = item.thumbnail;
+            if (!thumbnailUrl.startsWith('http')) {
+                thumbnailUrl = `${S3_BUCKET_URL}/${thumbnailUrl}`;
+            }
+
+            // Create card HTML
+            card.innerHTML = `
+                <div class="card-image-container">
+                    <img class="card-image"
+                         src="${thumbnailUrl}"
+                         alt="${item.caption || 'Splat thumbnail'}"
+                         loading="lazy"
+                         onerror="this.style.display='none'">
+                    <div class="card-caption">${item.caption || 'Untitled'}</div>
+                </div>
+            `;
+
+            // Add click handler to navigate to viewer
+            card.addEventListener('click', () => {
+                window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}`;
+            });
+
+            return card;
+        }
+
+        // Initialize gallery on page load
+        loadGallery();
+
+        // Upload functionality
+        const uploadInput = document.getElementById('uploadInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+
+        uploadInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Show upload status
+            uploadStatus.textContent = `Uploading ${file.name}...`;
+            uploadStatus.classList.add('show');
+
+            try {
+                // For now, we'll show a message about S3 configuration
+                // In production, you would implement actual S3 upload here
+                uploadStatus.textContent = 'File selected: ' + file.name;
+
+                // Simulated upload - replace with actual S3 upload
+                // const formData = new FormData();
+                // formData.append('file', file);
+                // const response = await fetch('YOUR_S3_UPLOAD_ENDPOINT', {
+                //     method: 'POST',
+                //     body: formData
+                // });
+
+                setTimeout(() => {
+                    uploadStatus.classList.remove('show');
+                }, 5000);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                uploadStatus.textContent = 'Upload failed: ' + error.message;
+                setTimeout(() => {
+                    uploadStatus.classList.remove('show');
+                }, 5000);
+            }
+
+            // Reset input
+            event.target.value = '';
+        });
+    </script>
+</body>
+</html>
