@@ -47,15 +47,16 @@
         document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
       },
       logThumbstick: function (evt) {
+        if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
+          document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
+        }
         xdelta = evt.detail.x;
         ydelta = evt.detail.y;
 
         document.querySelector('#cameraRig').object3D.position.x += xdelta * 0.1;
         document.querySelector('#cameraRig').object3D.position.y += ydelta * 0.1;
 
-        if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
-          document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
-        }
+
       }
     });
   </script>
