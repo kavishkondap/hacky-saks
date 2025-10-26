@@ -4,8 +4,11 @@
     <meta charset="utf-8" />
     <title>WebXR Splat Viewer + Capture</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
-    <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
+
+    <!-- Self-hosted scripts so COEP/COOP don't block them -->
+    <script src="/vendor/aframe.min.js"></script>
+    <script src="/vendor/aframe-gaussian-splatting.js"></script>
+
     <style>
       html, body { margin:0; height:100%; background:#000; }
       .hud {
@@ -28,34 +31,43 @@
     </div>
 
     <a-scene renderer="antialias: false" stats>
+      <!-- Lights + sky so you always see *something* -->
+      <a-entity light="type: ambient; color: #BBB; intensity: 0.8"></a-entity>
+      <a-entity light="type: directional; color: #FFF; intensity: 0.9" position="1 3 -2"></a-entity>
+      <a-sky color="#111"></a-sky>
+
+      <!-- Camera rig -->
       <a-entity id="rig" position="0 1.6 0">
         <a-entity id="camera" camera look-controls wasd-controls></a-entity>
       </a-entity>
 
+      <!-- Visual sanity check (use flat shader so lights aren’t required) -->
       <a-entity position="0 1.6 -2"
                 animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
-        <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
-        <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
+        <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF" material="shader: flat"></a-sphere>
+        <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E" material="shader: flat"></a-sphere>
       </a-entity>
 
+      <!-- Controllers -->
       <a-entity id="left-controller"  oculus-touch-controls="hand: left"></a-entity>
       <a-entity id="right-controller" oculus-touch-controls="hand: right"
                 capture-on-hold="button: a"></a-entity>
 
+      <!-- Gaussian splat (underscore attribute!) -->
       <a-entity id="splat-viewer"
-                position="0 1.5 -2" rotation="0 0 0"
-                gaussian-splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;">
+                position="0 1.5 -2" rotation="0 0 0" scale="1 1 1"
+                gaussian_splatting="src: /public/train.splat;">
       </a-entity>
     </a-scene>
 
     <script>
-      // Use ?src= as-is (absolute or relative). If missing, keep default URL above.
+      // If ?src= is provided, use it as-is (absolute or relative URL)
       (function () {
         const params = new URLSearchParams(window.location.search);
         const el = document.getElementById('splat-viewer');
         if (params.has('src')) {
-          const raw = params.get('src');
-          el.setAttribute('gaussian-splatting', `src: ${raw};`);
+          const raw = params.get('src');           // e.g. "public/train.splat"
+          el.setAttribute('gaussian_splatting', `src: ${raw};`);
         }
       })();
 
@@ -72,6 +84,7 @@
         });
       }
 
+      // --- Capture logic (unchanged) ---
       AFRAME.registerComponent('capture-on-hold', {
         schema: { button: { type:'string', default:'a' } },
         init() {
@@ -150,6 +163,7 @@
         }
       });
 
+      // Desktop test button
       (function() {
         const btn = document.getElementById('desktopTest');
         let rec=null, stream=null, chunks=[], screenshotBlob=null;
@@ -188,6 +202,10 @@
         };
         btn.onmouseleave = btn.onmouseup;
       })();
+
+      // Helpful console diagnostics
+      window.addEventListener('error', (e) => console.error('Viewer error:', e.error || e.message));
+      AFRAME.scenes && AFRAME.scenes[0]?.addEventListener('loaded', () => console.log('A-Frame scene loaded'));
     </script>
   </body>
 </html>
