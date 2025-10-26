@@ -44,6 +44,7 @@
         document.querySelector('camera').object3D.position.set(currentPos.x, currentPos.y - 0.1, currentPos.z);
       },
       logTrigger: function (evt) {
+        document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
       },
       logThumbstick: function (evt) {
         xdelta = evt.detail.x;
