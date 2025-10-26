@@ -29,10 +29,29 @@
     const scene = document.querySelector('hand: left');
     scene.addEventListener('triggerdown', function (evt) {
       console.log('LEFT HAND CLICKED!');
+      const sound = new Audio('./public/oh-my-god-meme.mp3');
+      sound.play();
+      // Create a new aquare entity
+      const newEntity = document.createElement('a-box');
+      newEntity.setAttribute('position', '0 1.5 -2');
+      newEntity.setAttribute('rotation', '0 45 0');
+      newEntity.setAttribute('color', '#4CC3D9');
+      // Add the new entity to the scene
+      document.querySelector('a-scene').appendChild(newEntity);
     });
     const scene2 = document.querySelector('hand: right');
     scene2.addEventListener('triggerdown', function (evt) {
       console.log('RIGHT HAND CLICKED!');
+      const sound = new Audio('./public/oh-my-god-meme.mp3');
+      sound.play();
+      // Create a new aquare entity
+      const newEntity = document.createElement('a-box');
+      newEntity.setAttribute('position', '0 1.5 -2');
+      newEntity.setAttribute('rotation', '0 45 0');
+      newEntity.setAttribute('color', '#4CC3D9');
+      // Add the new entity to the scene
+      document.querySelector('a-scene').appendChild(newEntity);
+
     });
   </script>
 </html>
