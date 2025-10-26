@@ -5,9 +5,21 @@
     <script src="https://quadjr.github.io/aframe-gaussian-splatting/index.js"></script>
   </head>
   <body>
-  <a-scene renderer="antialias: false" stats>
+  <a-scene
+    renderer="antialias: false"
+    cursor__mouse="rayOrigin: mouse"
+    cursor__xrselect="rayOrigin: xrselect"
+    raycaster="objects:#objects *;"
+  >
     <a-entity id="cameraRig" position="0 1.6 0">
-      <a-entity id="camera" camera></a-entity>
+      <a-entity id="camera" wasd-controls camera>
+          <a-entity id="button" button geometry="primitive: circle; radius: 0.02" position="0 0 -1"
+            material="color: clear; opacity: 1"></a-entity>
+          <a-entity cursor="fuse: true; fuseTimeout: 500"
+                    position="0 0 -1"
+                    geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                    material="color: black; shader: flat"></a-entity>
+      </a-entity>
     </a-entity>
     <a-entity id="rotating-entity" position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
       <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
@@ -36,6 +48,7 @@
         this.el.addEventListener('triggerdown', this.logTrigger);
         this.el.addEventListener('abuttondown', this.logAbutton);
         this.el.addEventListener('bbuttondown', this.logBbutton);
+
       },
       logAbutton: function (evt) {
         document.querySelector('#cameraRig').object3D.position.y += 0.1;
@@ -57,6 +70,15 @@
         document.querySelector('#cameraRig').object3D.position.z += zdelta * 0.1;
 
 
+      }
+    });
+
+    AFRAME.registerComponent('button', {
+      init: function () {
+
+        this.el.addEventListener('click', () => {
+          document.querySelector('#cameraRig').object3D.position.x += 0.1;
+        });
       }
     });
   </script>
