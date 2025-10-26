@@ -221,8 +221,7 @@
 
     <script>
         // Configuration
-        // const S3_BUCKET_URL = 'https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com';
-        const S3_BUCKET_URL = 'public'
+        const S3_BUCKET_URL = 'https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com';
         const GALLERY_JSON_PATH = 'gallery.json'; // Path to your JSON file in S3
 
         // Fetch gallery data from S3
@@ -283,7 +282,7 @@
                 const item = card._itemData;
                 if (item) {
                     clone.addEventListener('click', () => {
-                        window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}`;
+                        window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}?rot=${encodeURIComponent(item.transform.rot)}?pos=${encodeURIComponent(item.transform.pos)}`;
                     });
                 }
                 container.appendChild(clone);
@@ -336,7 +335,7 @@
 
             // Add click handler to navigate to viewer
             card.addEventListener('click', () => {
-                window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}`;
+                window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}?rot=${encodeURIComponent(item.transform.rot)}?pos=${encodeURIComponent(item.transform.pos)}`;
             });
 
             return card;

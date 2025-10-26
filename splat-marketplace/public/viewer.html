@@ -66,8 +66,16 @@
         const params = new URLSearchParams(window.location.search);
         const el = document.getElementById('splat-viewer');
         if (params.has('src')) {
-          const raw = params.get('src');           // e.g. "public/train.splat"
-          el.setAttribute('gaussian_splatting', `src: ${raw};`);
+          const sourcePath = params.get('src');           // e.g. "public/train.splat"
+          el.setAttribute('gaussian_splatting', `src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/${sourcePath};`);
+        }
+        if (urlParams.has('rot')) {
+          const rotation = urlParams.get('rot');
+          el.setAttribute('rotation', rotation);
+        }
+        if (urlParams.has('pos')) {
+          const position = urlParams.get('pos');
+          el.setAttribute('position', position);
         }
       })();
 
