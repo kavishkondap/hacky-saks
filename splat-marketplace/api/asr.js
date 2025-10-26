@@ -1,6 +1,6 @@
 export const config = { runtime: "edge" };
 
-function corsHeaders() {
+function cors() {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -9,13 +9,10 @@ function corsHeaders() {
 }
 
 export default async function handler(req) {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders() });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: cors() });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-      status: 405,
-      headers: { "content-type": "application/json", ...corsHeaders() }
+      status: 405, headers: { "content-type": "application/json", ...cors() }
     });
   }
 
@@ -24,8 +21,15 @@ export default async function handler(req) {
     const audio = form.get("audio");
     if (!audio) {
       return new Response(JSON.stringify({ error: "missing audio" }), {
-        status: 400,
-        headers: { "content-type": "application/json", ...corsHeaders() }
+        status: 400, headers: { "content-type": "application/json", ...cors() }
+      });
+    }
+
+    const raw = process.env.FISH_API_KEY || "";
+    const FISH_KEY = raw.replace(/^"(.*)"$/, "$1").trim();
+    if (!FISH_KEY) {
+      return new Response(JSON.stringify({ error: "missing_server_key:FISH_API_KEY" }), {
+        status: 500, headers: { "content-type": "application/json", ...cors() }
       });
     }
 
@@ -36,21 +40,25 @@ export default async function handler(req) {
 
     const r = await fetch("https://api.fish.audio/v1/asr", {
       method: "POST",
-      headers: { Authorization: `Bearer ${process.env.FISH_API_KEY}` },
+      headers: { Authorization: `Bearer ${FISH_KEY}` },
       body: out
     });
 
-    const data = await r.json();
-    const body = r.ok ? { text: data.text || data.transcript || "" } : data;
+    const text = await r.text();
+    let payload; try { payload = JSON.parse(text); } catch { payload = { raw: text }; }
 
-    return new Response(JSON.stringify(body), {
-      status: r.status,
-      headers: { "content-type": "application/json", ...corsHeaders() }
+    if (!r.ok) {
+      return new Response(JSON.stringify(payload), {
+        status: r.status, headers: { "content-type": "application/json", ...cors() }
+      });
+    }
+
+    return new Response(JSON.stringify({ text: payload.text || payload.transcript || "" }), {
+      status: 200, headers: { "content-type": "application/json", ...cors() }
     });
   } catch (e) {
     return new Response(JSON.stringify({ error: "asr_failed", detail: String(e) }), {
-      status: 500,
-      headers: { "content-type": "application/json", ...corsHeaders() }
+      status: 500, headers: { "content-type": "application/json", ...cors() }
     });
   }
 }

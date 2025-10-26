@@ -12,21 +12,28 @@ export default async function handler(req) {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors() });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "method_not_allowed" }), {
-      status: 405,
-      headers: { "content-type": "application/json", ...cors() }
+      status: 405, headers: { "content-type": "application/json", ...cors() }
     });
   }
 
   try {
     const { transcript = "", image_base64 = "", prompt = "" } = await req.json();
 
+    const raw = process.env.ANTHROPIC_API_KEY || "";
+    const ANTH_KEY = raw.replace(/^"(.*)"$/, "$1").trim();
+    if (!ANTH_KEY) {
+      return new Response(JSON.stringify({ error: "missing_server_key:ANTHROPIC_API_KEY" }), {
+        status: 500, headers: { "content-type": "application/json", ...cors() }
+      });
+    }
+
     const userText = [
-      prompt.trim() || "Analyze the image and the transcript and provide a concise helpful reply.",
+      (prompt || "Analyze the image and the transcript. Provide a concise helpful reply.").trim(),
       transcript ? `\n\nUser transcript:\n${transcript}` : ""
     ].join("");
 
     const body = {
-      model: "claude-3-5-sonnet-20241022",          // or a current model available to your key
+      model: "claude-3-5-sonnet-20241022", // or "claude-3-5-sonnet-latest" if available on your account
       max_tokens: 512,
       messages: [
         {
@@ -46,33 +53,29 @@ export default async function handler(req) {
       method: "POST",
       headers: {
         "content-type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "x-api-key": ANTH_KEY,
         "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify(body)
     });
 
-    const payload = await r.json();
+    const text = await r.text();
+    let payload; try { payload = JSON.parse(text); } catch { payload = { raw: text }; }
 
     if (!r.ok) {
-      // Pass through Anthropic's error with status
       return new Response(JSON.stringify(payload), {
-        status: r.status,
-        headers: { "content-type": "application/json", ...cors() }
+        status: r.status, headers: { "content-type": "application/json", ...cors() }
       });
     }
 
-    // Extract the first text block
     const parts = payload?.content || [];
     const firstText = parts.find(p => p.type === "text")?.text || "";
     return new Response(JSON.stringify({ output: firstText }), {
-      status: 200,
-      headers: { "content-type": "application/json", ...cors() }
+      status: 200, headers: { "content-type": "application/json", ...cors() }
     });
   } catch (e) {
     return new Response(JSON.stringify({ error: "claude_failed", detail: String(e) }), {
-      status: 500,
-      headers: { "content-type": "application/json", ...cors() }
+      status: 500, headers: { "content-type": "application/json", ...cors() }
     });
   }
 }
