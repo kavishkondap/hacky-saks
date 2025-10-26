@@ -106,25 +106,22 @@
 
         },
         logAbutton: function (evt) {
-          document.querySelector('#rig').object3D.position.y += 0.1;
-        },
-        logBbutton: function (evt) {
           document.querySelector('#rig').object3D.position.y -= 0.1;
         },
+        logBbutton: function (evt) {
+          document.querySelector('#rig').object3D.position.y += 0.1;
+        },
         logTrigger: function (evt) {
-          document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
+          document.querySelector('#rotating-entity').object3D.position.y += 0.1;
           var entity = document.querySelector('#sounds');
           entity.components.sound.playSound();
         },
         logThumbstick: function (evt) {
-          if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
-            document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
-          }
           xdelta = evt.detail.x;
           zdelta = evt.detail.y;
 
-          document.querySelector('#rig').object3D.position.x += xdelta * 0.1;
-          document.querySelector('#rig').object3D.position.z += zdelta * 0.1;
+          document.querySelector('#rig').object3D.position.x += xdelta * 0.02;
+          document.querySelector('#rig').object3D.position.z += zdelta * 0.02;
 
 
         }
