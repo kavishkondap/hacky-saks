@@ -18,8 +18,8 @@
     const urlParams = new URLSearchParams(window.location.search);
     const splat = document.getElementById('splat-viewer');
     if (urlParams.has('src')) {
-        const sourceUrl = urlParams.get('src');
-        splat.setAttribute('gaussian_splatting', "src: https://" + sourceUrl + ";");
+        const sourceID = urlParams.get('src');
+        splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
     }
   </script>
 </html>
