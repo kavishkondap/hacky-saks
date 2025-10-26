@@ -71,7 +71,7 @@
 
         if (params.has('src')) {
           const raw = params.get('src'); // absolute or relative
-          el.setAttribute('gaussian_splatting', `src: ${raw};`);
+          el.setAttribute('gaussian_splatting', `src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/${raw};`);
         }
         if (params.has('rot')) el.setAttribute('rotation', params.get('rot'));
         if (params.has('pos')) el.setAttribute('position', params.get('pos'));
