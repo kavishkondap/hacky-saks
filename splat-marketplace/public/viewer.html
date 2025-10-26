@@ -31,6 +31,8 @@
     </div>
 
     <a-scene renderer="antialias: false" stats>
+      <a-entity id="sounds" sound="src: oh-my-god-meme.mp3"></a-entity>
+
       <!-- Lights + sky so you always see *something* -->
       <a-entity light="type: ambient; color: #BBB; intensity: 0.8"></a-entity>
       <a-entity light="type: directional; color: #FFF; intensity: 0.9" position="1 3 -2"></a-entity>
@@ -42,16 +44,14 @@
       </a-entity>
 
       <!-- Visual sanity check (use flat shader so lights aren’t required) -->
-      <a-entity position="0 1.6 -2"
+      <a-entity id="rotating-entity" position="0 1.6 -2"
                 animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
         <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF" material="shader: flat"></a-sphere>
         <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E" material="shader: flat"></a-sphere>
       </a-entity>
 
       <!-- Controllers -->
-      <a-entity id="left-controller"  oculus-touch-controls="hand: left"></a-entity>
-      <a-entity id="right-controller" oculus-touch-controls="hand: right"
-                capture-on-hold="button: a"></a-entity>
+      <a-entity id="right-controller" oculus-touch-controls="hand: right" control-logic></a-entity>
 
       <!-- Gaussian splat (underscore attribute!) -->
       <a-entity id="splat-viewer"
@@ -93,81 +93,40 @@
       }
 
       // --- Capture logic (unchanged) ---
-      AFRAME.registerComponent('capture-on-hold', {
-        schema: { button: { type:'string', default:'a' } },
-        init() {
-          this.mediaStream = null;
-          this.mediaRecorder = null;
-          this.chunks = [];
-          this.recording = false;
-          this._pendingScreenshot = null;
+      AFRAME.registerComponent('control-logic',{
+        init: function () {
+          this.logThumbstick = this.logThumbstick.bind(this);
+          this.logTrigger = this.logTrigger.bind(this);
+          this.logAbutton = this.logAbutton.bind(this);
+          this.logBbutton = this.logBbutton.bind(this);
+          this.el.addEventListener('thumbstickmoved', this.logThumbstick);
+          this.el.addEventListener('triggerdown', this.logTrigger);
+          this.el.addEventListener('abuttondown', this.logAbutton);
+          this.el.addEventListener('bbuttondown', this.logBbutton);
 
-          const btn = this.data.button.toLowerCase();
-          this.onDown = () => this.startCapture();
-          this.onUp   = () => this.stopCapture();
-          this.el.addEventListener(`${btn}buttondown`, this.onDown);
-          this.el.addEventListener(`${btn}buttonup`,   this.onUp);
         },
-        async startCapture() {
-          if (this.recording) return;
-          this.recording = true;
-
-          const scene = this.el.sceneEl;
-          const canvas = scene.canvas || scene.renderer?.domElement;
-          const screenshotBlob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-          this._pendingScreenshot = screenshotBlob;
-
-          try {
-            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          } catch (e) { status('mic permission denied', 'err'); this.recording = false; return; }
-          this.chunks = [];
-          this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: 'audio/webm' });
-          this.mediaRecorder.ondataavailable = e => { if (e.data.size) this.chunks.push(e.data); };
-          this.mediaRecorder.start();
-          status('recording… (release A to stop)');
+        logAbutton: function (evt) {
+          document.querySelector('#rig').object3D.position.y += 0.1;
         },
-        async stopCapture() {
-          if (!this.recording) return;
-          this.recording = false;
+        logBbutton: function (evt) {
+          document.querySelector('#rig').object3D.position.y -= 0.1;
+        },
+        logTrigger: function (evt) {
+          document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
+          var entity = document.querySelector('sounds');
+          entity.components.sound.startSound();
+        },
+        logThumbstick: function (evt) {
+          if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
+            document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
+          }
+          xdelta = evt.detail.x;
+          zdelta = evt.detail.y;
 
-          await new Promise(resolve => { this.mediaRecorder.onstop = resolve; this.mediaRecorder.stop(); });
-          this.mediaStream.getTracks().forEach(t => t.stop());
-          const audioBlob = new Blob(this.chunks, { type: 'audio/webm' });
-          status('transcribing (Fish)…');
+          document.querySelector('#rig').object3D.position.x += xdelta * 0.1;
+          document.querySelector('#rig').object3D.position.z += zdelta * 0.1;
 
-          let transcript = '';
-          try {
-            const form = new FormData();
-            form.append('audio', audioBlob, 'clip.webm');
-            const r = await fetch('/api/asr', { method: 'POST', body: form });
-            const j = await r.json();
-            if (!r.ok) throw new Error(j.error || 'asr_failed');
-            transcript = j.text || '';
-          } catch (e) { status('Fish STT failed: ' + e.message, 'err'); }
 
-          status('asking Claude…');
-          let output = '';
-          try {
-            const img = await blobToBase64(this._pendingScreenshot);
-            const r = await fetch('/api/claude', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                transcript,
-                image_base64: img,
-                prompt: 'Analyze the VR scene image and the user transcript. Return a concise, helpful answer.'
-              })
-            });
-            const j = await r.json();
-            if (!r.ok) throw new Error(j.error || 'claude_failed');
-            output = j.output || '';
-          } catch (e) { status('Claude failed: ' + e.message, 'err'); }
-
-          window.lastClaudeOutput = output;
-          resultEl.textContent = output || '(no output)';
-          status('done.');
-          this._pendingScreenshot = null;
-          this.mediaStream = null; this.mediaRecorder = null; this.chunks = [];
         }
       });
 
