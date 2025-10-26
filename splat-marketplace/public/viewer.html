@@ -24,14 +24,14 @@
   </head>
   <body>
     <div class="hud">
-      <div class="row">Hold <b>A</b> on the right controller to record. Release to stop.</div>
+      <div class="row">Hold the <b>right trigger</b> to record. Release to stop.</div>
       <div id="status" class="row mono ok">idle</div>
       <div class="row"><button id="desktopTest">Desktop test (hold mouse)</button></div>
       <div id="result" class="row mono"></div>
     </div>
 
     <a-scene renderer="antialias: false" stats>
-      <!-- Lights + sky so you always see *something* -->
+      <!-- Lights + sky so you always see something -->
       <a-entity light="type: ambient; color: #BBB; intensity: 0.8"></a-entity>
       <a-entity light="type: directional; color: #FFF; intensity: 0.9" position="1 3 -2"></a-entity>
       <a-sky color="#111"></a-sky>
@@ -41,7 +41,7 @@
         <a-entity id="camera" camera look-controls wasd-controls></a-entity>
       </a-entity>
 
-      <!-- Visual sanity check (use flat shader so lights aren’t required) -->
+      <!-- Visual sanity check (unlit so it’s visible regardless of lights) -->
       <a-entity position="0 1.6 -2"
                 animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
         <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF" material="shader: flat"></a-sphere>
@@ -51,12 +51,12 @@
       <!-- Controllers -->
       <a-entity id="left-controller"  oculus-touch-controls="hand: left"></a-entity>
       <a-entity id="right-controller" oculus-touch-controls="hand: right"
-                capture-on-hold="button: a"></a-entity>
-      
-      <!-- NEW: speaker used to play the synthesized reply -->
+                capture-on-hold="button: a" trigger-capture></a-entity>
+
+      <!-- Speaker to play synthesized reply -->
       <a-entity id="speaker" sound="positional: false; volume: 1.0"></a-entity>
 
-      <!-- Gaussian splat (underscore attribute!) -->
+      <!-- Gaussian splat -->
       <a-entity id="splat-viewer"
                 position="0 1.5 -2" rotation="0 0 0" scale="1 1 1"
                 gaussian_splatting="src: /public/train.splat;">
@@ -64,22 +64,17 @@
     </a-scene>
 
     <script>
-      // If ?src= is provided, use it as-is (absolute or relative URL)
+      // --- URL param handling: src (splat), rot, pos ---
       (function () {
         const params = new URLSearchParams(window.location.search);
         const el = document.getElementById('splat-viewer');
+
         if (params.has('src')) {
-          const sourcePath = params.get('src');           // e.g. "public/train.splat"
-          el.setAttribute('gaussian_splatting', `src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/${sourcePath};`);
+          const raw = params.get('src'); // absolute or relative
+          el.setAttribute('gaussian_splatting', `src: ${raw};`);
         }
-        if (params.has('rot')) {
-          const rotation = params.get('rot');
-          el.setAttribute('rotation', rotation);
-        }
-        if (params.has('pos')) {
-          const position = params.get('pos');
-          el.setAttribute('position', position);
-        }
+        if (params.has('rot')) el.setAttribute('rotation', params.get('rot'));
+        if (params.has('pos')) el.setAttribute('position', params.get('pos'));
       })();
 
       const statusEl = document.getElementById('status');
@@ -88,14 +83,34 @@
 
       function blobToBase64(blob) {
         return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(String(reader.result).split(',')[1]||'');
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
+          const r = new FileReader();
+          r.onloadend = () => resolve(String(r.result).split(',')[1]||'');
+          r.onerror = reject;
+          r.readAsDataURL(blob);
         });
       }
 
-      // --- Capture logic (unchanged) ---
+      // Better error surfaces
+      async function readJsonOrText(res) {
+        const txt = await res.text();
+        try { return JSON.parse(txt); } catch { return { raw: txt }; }
+      }
+      function humanizeError(prefix, payload, status) {
+        let msg = prefix;
+        if (payload?.error) {
+          if (typeof payload.error === 'string') msg += `: ${payload.error}`;
+          else msg += `: ${JSON.stringify(payload.error)}`;
+        } else if (payload?.message) {
+          msg += `: ${payload.message}`;
+        } else if (payload?.raw) {
+          msg += `: ${payload.raw.slice(0, 300)}`;
+        } else if (status) {
+          msg += ` (status ${status})`;
+        }
+        return msg;
+      }
+
+      // --- A-button capture (kept) ---
       AFRAME.registerComponent('capture-on-hold', {
         schema: { button: { type:'string', default:'a' } },
         init() {
@@ -136,18 +151,20 @@
           await new Promise(resolve => { this.mediaRecorder.onstop = resolve; this.mediaRecorder.stop(); });
           this.mediaStream.getTracks().forEach(t => t.stop());
           const audioBlob = new Blob(this.chunks, { type: 'audio/webm' });
-          status('transcribing (Fish)…');
 
+          // Fish ASR
+          status('transcribing (Fish)…');
           let transcript = '';
           try {
             const form = new FormData();
             form.append('audio', audioBlob, 'clip.webm');
             const r = await fetch('/api/asr', { method: 'POST', body: form });
-            const j = await r.json();
-            if (!r.ok) throw new Error(j.error || 'asr_failed');
-            transcript = j.text || '';
-          } catch (e) { status('Fish STT failed: ' + e.message, 'err'); }
+            const payload = await readJsonOrText(r);
+            if (!r.ok) throw new Error(humanizeError('Fish STT failed', payload, r.status));
+            transcript = payload.text || '';
+          } catch (e) { console.error(e); status(String(e.message || e), 'err'); }
 
+          // Claude
           status('asking Claude…');
           let output = '';
           try {
@@ -161,10 +178,10 @@
                 prompt: 'Analyze the VR scene image and the user transcript. Return a concise, helpful answer.'
               })
             });
-            const j = await r.json();
-            if (!r.ok) throw new Error(j.error || 'claude_failed');
-            output = j.output || '';
-          } catch (e) { status('Claude failed: ' + e.message, 'err'); }
+            const payload = await readJsonOrText(r);
+            if (!r.ok) throw new Error(humanizeError('Claude failed', payload, r.status));
+            output = payload.output || '';
+          } catch (e) { console.error(e); status(String(e.message || e), 'err'); }
 
           window.lastClaudeOutput = output;
           resultEl.textContent = output || '(no output)';
@@ -174,7 +191,135 @@
         }
       });
 
-      // Desktop test button
+      // --- Right-trigger capture: screenshot + mic; then ASR -> Claude -> TTS ---
+      AFRAME.registerComponent('trigger-capture', {
+        init() {
+          this.recording = false;
+          this.mediaStream = null;
+          this.mediaRecorder = null;
+          this.chunks = [];
+          this.screenshotBlob = null;
+
+          this.onDown = () => this.startCapture();
+          this.onUp   = () => this.stopAndProcess();
+
+          this.el.addEventListener('triggerdown', this.onDown);
+          this.el.addEventListener('triggerup',   this.onUp);
+        },
+
+        async startCapture() {
+          if (this.recording) return;
+          this.recording = true;
+
+          // 1) Screenshot immediately
+          const scene = this.el.sceneEl;
+          const canvas = scene.canvas || scene.renderer?.domElement;
+          this.screenshotBlob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+
+          // 2) Start mic
+          try {
+            this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (e) { status('mic permission denied', 'err'); this.recording = false; return; }
+
+          this.chunks = [];
+          this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: 'audio/webm' });
+          this.mediaRecorder.ondataavailable = e => { if (e.data.size) this.chunks.push(e.data); };
+          this.mediaRecorder.start();
+          status('recording… (release trigger to stop)');
+        },
+
+        async stopAndProcess() {
+          if (!this.recording) return;
+          this.recording = false;
+
+          // stop mic + collect audio
+          await new Promise(r => { this.mediaRecorder.onstop = r; this.mediaRecorder.stop(); });
+          this.mediaStream.getTracks().forEach(t => t.stop());
+          const audioBlob = new Blob(this.chunks, { type: 'audio/webm' });
+
+          // 3.1) Fish ASR
+          status('transcribing (Fish)…');
+          let transcript = '';
+          try {
+            const form = new FormData();
+            form.append('audio', audioBlob, 'clip.webm');
+            const r = await fetch('/api/asr', { method: 'POST', body: form });
+            const payload = await readJsonOrText(r);
+            if (!r.ok) throw new Error(humanizeError('Fish STT failed', payload, r.status));
+            transcript = payload.text || '';
+          } catch (e) { console.error(e); status(String(e.message || e), 'err'); }
+
+          // 3.2) Claude
+          status('asking Claude…');
+          let answerText = '';
+          try {
+            const imgB64 = await blobToBase64(this.screenshotBlob);
+            const r = await fetch('/api/claude', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                transcript,
+                image_base64: imgB64,
+                prompt: 'Analyze the VR scene image and the user transcript. Reply concisely and helpfully for audio playback.'
+              })
+            });
+            const payload = await readJsonOrText(r);
+            if (!r.ok) throw new Error(humanizeError('Claude failed', payload, r.status));
+            answerText = (payload.output || '').trim();
+          } catch (e) { console.error(e); status(String(e.message || e), 'err'); }
+
+          // HUD
+          window.lastClaudeOutput = answerText;
+          resultEl.textContent = answerText || '(no output)';
+
+          // 3.3) Fish TTS → play in-headset
+          if (answerText) {
+            status('synthesizing (Fish TTS)…');
+            try {
+              const r = await fetch('/api/tts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: answerText, format: 'mp3' })
+              });
+              if (!r.ok) {
+                const payload = await readJsonOrText(r);
+                throw new Error(humanizeError('TTS failed', payload, r.status));
+              }
+              const buf = await r.arrayBuffer();
+              const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
+
+              // Play via A-Frame sound (works on Quest)
+              const speaker = document.querySelector('#speaker');
+              speaker.setAttribute('sound', 'src', url);
+              if (speaker.components.sound) {
+                try { speaker.components.sound.stop(); } catch {}
+                speaker.components.sound.playSound();
+              } else {
+                new Audio(url).play().catch(()=>{});
+              }
+
+              // optional: reclaim URL after playback (best effort)
+              const a = speaker.components.sound?.pool?.[0]?.audioEl;
+              if (a) {
+                const revoke = () => { URL.revokeObjectURL(url); a.removeEventListener('ended', revoke); };
+                a.addEventListener('ended', revoke);
+              }
+
+              status('done.');
+            } catch (e) { console.error(e); status(String(e.message || e), 'err'); }
+          } else {
+            status('done.');
+          }
+
+          // cleanup
+          this.mediaStream = null;
+          this.mediaRecorder = null;
+          this.chunks = [];
+          this.screenshotBlob = null;
+        }
+      });
+
+      // --- Desktop test button (mouse hold) ---
       (function() {
         const btn = document.getElementById('desktopTest');
         let rec=null, stream=null, chunks=[], screenshotBlob=null;
@@ -194,155 +339,61 @@
           stream.getTracks().forEach(t => t.stop());
           const audioBlob = new Blob(chunks, { type:'audio/webm' });
 
+          // ASR
+          status('transcribing (Fish)…');
           let transcript=''; try{
             const f = new FormData(); f.append('audio', audioBlob, 'clip.webm');
             const r = await fetch('/api/asr', { method:'POST', body:f });
-            const j = await r.json(); if(!r.ok) throw new Error(j.error||'asr_failed');
-            transcript = j.text||'';
-          }catch(e){ status('Fish STT failed: '+e.message,'err'); }
+            const p = await readJsonOrText(r);
+            if (!r.ok) throw new Error(humanizeError('Fish STT failed', p, r.status));
+            transcript = p.text||'';
+          }catch(e){ console.error(e); status(String(e.message||e),'err'); }
 
-          try{
+          // Claude
+          let txt=''; try{
             const b64 = await blobToBase64(screenshotBlob);
             const r = await fetch('/api/claude', {
               method:'POST', headers:{'Content-Type':'application/json'},
               body: JSON.stringify({ transcript, image_base64: b64, prompt: 'Describe key details and insights.' })
             });
-            const j = await r.json(); if(!r.ok) throw new Error(j.error||'claude_failed');
-            window.lastClaudeOutput = j.output||''; resultEl.textContent = window.lastClaudeOutput; status('done.');
-          }catch(e){ status('Claude failed: '+e.message,'err'); }
+            const p = await readJsonOrText(r);
+            if (!r.ok) throw new Error(humanizeError('Claude failed', p, r.status));
+            txt = p.output||'';
+          }catch(e){ console.error(e); status(String(e.message||e),'err'); }
+
+          // TTS + play
+          if (txt) {
+            try{
+              const r = await fetch('/api/tts', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ text: txt, format:'mp3' })
+              });
+              if (!r.ok) {
+                const p = await readJsonOrText(r);
+                throw new Error(humanizeError('TTS failed', p, r.status));
+              }
+              const buf = await r.arrayBuffer();
+              const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
+              const speaker = document.querySelector('#speaker');
+              speaker.setAttribute('sound', 'src', url);
+              if (speaker.components.sound) {
+                try { speaker.components.sound.stop(); } catch {}
+                speaker.components.sound.playSound();
+              } else {
+                new Audio(url).play().catch(()=>{});
+              }
+              status('done.');
+            }catch(e){ console.error(e); status(String(e.message||e),'err'); }
+          } else {
+            resultEl.textContent = '(no output)'; status('done.');
+          }
         };
         btn.onmouseleave = btn.onmouseup;
       })();
 
-      // Helpful console diagnostics
+      // Diagnostics
       window.addEventListener('error', (e) => console.error('Viewer error:', e.error || e.message));
       AFRAME.scenes && AFRAME.scenes[0]?.addEventListener('loaded', () => console.log('A-Frame scene loaded'));
-
-      // === Right-trigger capture: screenshot + mic; then Fish ASR -> Claude -> Fish TTS ===
-        AFRAME.registerComponent('trigger-capture', {
-          init() {
-            this.recording = false;
-            this.mediaStream = null;
-            this.mediaRecorder = null;
-            this.chunks = [];
-            this.screenshotBlob = null;
-
-            this.onDown = () => this.startCapture();
-            this.onUp   = () => this.stopAndProcess();
-
-            this.el.addEventListener('triggerdown', this.onDown);
-            this.el.addEventListener('triggerup',   this.onUp);
-          },
-
-          async startCapture() {
-            if (this.recording) return;
-            this.recording = true;
-
-            // 1) Screenshot immediately
-            const scene = this.el.sceneEl;
-            const canvas = scene.canvas || scene.renderer?.domElement;
-            this.screenshotBlob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-
-            // 2) Start mic
-            try {
-              this.mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (e) { status('mic permission denied', 'err'); this.recording = false; return; }
-
-            this.chunks = [];
-            this.mediaRecorder = new MediaRecorder(this.mediaStream, { mimeType: 'audio/webm' });
-            this.mediaRecorder.ondataavailable = e => { if (e.data.size) this.chunks.push(e.data); };
-            this.mediaRecorder.start();
-            status('recording… (release trigger to stop)');
-          },
-
-          async stopAndProcess() {
-            if (!this.recording) return;
-            this.recording = false;
-
-            // stop mic + collect audio
-            await new Promise(r => { this.mediaRecorder.onstop = r; this.mediaRecorder.stop(); });
-            this.mediaStream.getTracks().forEach(t => t.stop());
-            const audioBlob = new Blob(this.chunks, { type: 'audio/webm' });
-
-            // 3.1) Fish ASR
-            status('transcribing (Fish)…');
-            let transcript = '';
-            try {
-              const form = new FormData();
-              form.append('audio', audioBlob, 'clip.webm');
-              const r = await fetch('/api/asr', { method: 'POST', body: form });
-              const j = await r.json();
-              if (!r.ok) throw new Error(j.error || 'asr_failed');
-              transcript = j.text || '';
-            } catch (e) {
-              status('Fish STT failed: ' + e.message, 'err');
-            }
-
-            // 3.2) Claude
-            status('asking Claude…');
-            let answerText = '';
-            try {
-              const imgB64 = await blobToBase64(this.screenshotBlob);
-              const r = await fetch('/api/claude', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  transcript,
-                  image_base64: imgB64,
-                  prompt: 'Analyze the VR scene image and the user transcript. Reply concisely and helpfully for audio playback.'
-                })
-              });
-              const j = await r.json();
-              if (!r.ok) throw new Error(j.error || 'claude_failed');
-              answerText = (j.output || '').trim();
-            } catch (e) {
-              status('Claude failed: ' + e.message, 'err');
-            }
-
-            // HUD
-            window.lastClaudeOutput = answerText;
-            resultEl.textContent = answerText || '(no output)';
-
-            // 3.3) Fish TTS → play in-headset
-            if (answerText) {
-              status('synthesizing (Fish TTS)…');
-              try {
-                const r = await fetch('/api/tts', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ text: answerText, format: 'mp3' })
-                });
-                if (!r.ok) throw new Error(await r.text() || 'tts_failed');
-
-                const buf = await r.arrayBuffer();
-                const url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
-
-                // Play via A-Frame sound (works on Quest)
-                const speaker = document.querySelector('#speaker');
-                speaker.setAttribute('sound', 'src', url);
-                if (speaker.components.sound) {
-                  try { speaker.components.sound.stop(); } catch {}
-                  speaker.components.sound.playSound();
-                } else {
-                  new Audio(url).play().catch(()=>{});
-                }
-                status('done.');
-              } catch (e) {
-                status('TTS failed: ' + e.message, 'err');
-              }
-            } else {
-              status('done.');
-            }
-
-            // cleanup
-            this.mediaStream = null;
-            this.mediaRecorder = null;
-            this.chunks = [];
-            this.screenshotBlob = null;
-          }
-        });
-
-
     </script>
   </body>
 </html>
