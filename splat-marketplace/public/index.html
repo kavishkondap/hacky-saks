@@ -282,7 +282,7 @@
                 const item = card._itemData;
                 if (item) {
                     clone.addEventListener('click', () => {
-                        window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}?rot=${encodeURIComponent(item.transform.rot)}?pos=${encodeURIComponent(item.transform.pos)}`;
+                        window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}&rot=${encodeURIComponent(item.transform.rot)}&pos=${encodeURIComponent(item.transform.pos)}`;
                     });
                 }
                 container.appendChild(clone);
@@ -335,7 +335,7 @@
 
             // Add click handler to navigate to viewer
             card.addEventListener('click', () => {
-                window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}?rot=${encodeURIComponent(item.transform.rot)}?pos=${encodeURIComponent(item.transform.pos)}`;
+                window.location.href = `viewer.html?src=${encodeURIComponent(item.splatFile)}&rot=${encodeURIComponent(item.transform.rot)}&pos=${encodeURIComponent(item.transform.pos)}`;
             });
 
             return card;
