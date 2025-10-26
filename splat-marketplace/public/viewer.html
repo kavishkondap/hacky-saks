@@ -114,7 +114,7 @@
         logTrigger: function (evt) {
           document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
           var entity = document.querySelector('#sounds');
-          entity.components.sound.startSound();
+          entity.components.sound.playSound();
         },
         logThumbstick: function (evt) {
           if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
