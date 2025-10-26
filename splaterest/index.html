@@ -26,6 +26,7 @@
     }
 
     AFRAME.regi
+    const SOUND = new Audio('./public/oh-my-god-meme.mp3');
 
     // Wait for A-Frame scene to load
     const scene = document.querySelector('hand: left');
@@ -61,10 +62,7 @@
         this.el.addEventListener('thumbstickmoved', this.logThumbstick);
       },
       logThumbstick: function (evt) {
-        if (evt.detail.y > 0.95) { console.log("DOWN"); }
-        if (evt.detail.y < -0.95) { console.log("UP"); }
-        if (evt.detail.x < -0.95) { console.log("LEFT"); }
-        if (evt.detail.x > 0.95) { console.log("RIGHT"); }
+        SOUND.play();
       }
     });
 
