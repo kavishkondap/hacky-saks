@@ -16,6 +16,7 @@
   </a-scene>
 
   <script>
+    document.querySelector('[camera]').setAttribute('position', '0 0 0');
     document.querySelector('#rotating-entity').setAttribute('position', '0 .2 -2.0');
     const urlParams = new URLSearchParams(window.location.search);
     const splat = document.getElementById('splat-viewer');
@@ -36,8 +37,7 @@
         if (evt.detail.x > 0.95) { console.log("RIGHT"); }
 
         if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
-          sound = new Audio('./public/oh-my-god-meme.mp3');
-          sound.play();
+
           camera = document.querySelector('[camera]');
           position = camera.getAttribute('position');
           console.log(position);
