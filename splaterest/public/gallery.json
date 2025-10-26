@@ -8,5 +8,45 @@
     "thumbnail": "thumbnails/splat2.png",
     "caption": "Indoor office space",
     "splatFile": "office.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat1.png",
+    "caption": "Beautiful scene",
+    "splatFile": "coolest.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat2.png",
+    "caption": "Indoor office space",
+    "splatFile": "office.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat1.png",
+    "caption": "Beautiful garden scene",
+    "splatFile": "garden.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat2.png",
+    "caption": "Indoor office space",
+    "splatFile": "office.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat1.png",
+    "caption": "Beautiful garden scene",
+    "splatFile": "garden.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat2.png",
+    "caption": "Indoor office space",
+    "splatFile": "office.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat1.png",
+    "caption": "Beautiful garden scene",
+    "splatFile": "garden.splat"
+  },
+  {
+    "thumbnail": "thumbnails/splat2.png",
+    "caption": "Indoor office space",
+    "splatFile": "office.splat"
   }
 ]
