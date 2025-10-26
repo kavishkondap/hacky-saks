@@ -46,7 +46,10 @@ export default async function handler(req) {
     const headers = new Headers(r.headers);
     headers.set("Access-Control-Allow-Origin", "*");
     headers.set("Cross-Origin-Resource-Policy", "cross-origin");
-    if (!headers.get("content-type")) headers.set("content-type", "audio/mpeg");
+    if (!headers.get("content-type")) {
+      headers.set("content-type", format === "mp3" ? "audio/mpeg" : "application/octet-stream");
+    }
+
     return new Response(r.body, { status: 200, headers });
   } catch (e) {
     return new Response(JSON.stringify({ error: "tts_failed", detail: String(e) }), {
