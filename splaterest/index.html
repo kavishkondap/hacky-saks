@@ -10,12 +10,7 @@
         <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
         <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
       </a-entity>
-      <a-entity id="right-controller" meta-touch-controls="hand: right" thumbstick-logging></a-entity>
-      <a-entity
-          id="controller-data"
-          controller-listener="leftControllerId:  #left-controller;
-                              rightControllerId: #right-controller;">
-      </a-entity>
+      <a-entity meta-touch-controls="hand: right" thumbstick-logging></a-entity>
       <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
     </a-scene>
   </body>
@@ -30,15 +25,19 @@
 
     const SOUND = new Audio('./public/oh-my-god-meme.mp3');
     
-    AFRAME.registerComponent('thumbstick-logging', {
+    AFRAME.registerComponent('thumbstick-logging',{
       init: function () {
-        this.el.addEventListener('thumbstickmoved', (evt) => {
-          const x = evt.detail.x;
-          const y = evt.detail.y;
-          if (y > 0.95) {
+        this.el.addEventListener('thumbstickmoved', this.logThumbstick);
+      },
+      logThumbstick: function (evt) {
+        if (evt.detail.y > 0.95) { console.log("DOWN"); }
+        if (evt.detail.y < -0.95) { console.log("UP"); }
+        if (evt.detail.x < -0.95) { console.log("LEFT"); }
+        if (evt.detail.x > 0.95) { console.log("RIGHT"); }
+
+        if (evt.detail.y > 0.95 || evt.detail.y < -0.95 || evt.detail.x < -0.95 || evt.detail.x > 0.95) { 
             SOUND.play();
-          }
-        });
+        }
       }
     });
 
