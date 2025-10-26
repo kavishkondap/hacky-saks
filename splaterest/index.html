@@ -38,10 +38,10 @@
         this.el.addEventListener('bbuttondown', this.logBbutton);
       },
       logAbutton: function (evt) {
-        currentPos = document.querySelector('camera').object3D.position;
+        document.querySelector('#cameraRig').object3D.position.z += 0.1;
       },
       logBbutton: function (evt) {
-        currentPos = document.querySelector('camera').object3D.position;
+        document.querySelector('#cameraRig').object3D.position.z -= 0.1;
       },
       logTrigger: function (evt) {
         document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
