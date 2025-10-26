@@ -6,7 +6,9 @@
   </head>
   <body>
   <a-scene renderer="antialias: false" stats>
-    <a-entity camera position="0 1.6 0"></a-entity>
+    <a-entity id="cameraRig" position="0 1.6 0">
+      <a-entity id="camera" camera></a-entity>
+    </a-entity>
     <a-entity id="rotating-entity" position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
       <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
       <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
@@ -37,11 +39,9 @@
       },
       logAbutton: function (evt) {
         currentPos = document.querySelector('camera').object3D.position;
-        document.querySelector('camera').object3D.position.set(currentPos.x, currentPos.y + 0.1, currentPos.z);
       },
       logBbutton: function (evt) {
         currentPos = document.querySelector('camera').object3D.position;
-        document.querySelector('camera').object3D.position.set(currentPos.x, currentPos.y - 0.1, currentPos.z);
       },
       logTrigger: function (evt) {
         document.querySelector('#rotating-entity').setAttribute('position', '0 0.2 -2.0');
@@ -50,8 +50,8 @@
         xdelta = evt.detail.x;
         ydelta = evt.detail.y;
 
-        document.querySelector('camera').object3D.position.x += xdelta * 0.1;
-        document.querySelector('camera').object3D.position.z += ydelta * 0.1;
+        document.querySelector('#cameraRig').object3D.position.x += xdelta * 0.1;
+        document.querySelector('#cameraRig').object3D.position.y += ydelta * 0.1;
 
         if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
           document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
