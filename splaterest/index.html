@@ -6,6 +6,7 @@
   </head>
   <body>
   <a-scene renderer="antialias: false" stats>
+    <a-entity camera position="0 1.6 0"></a-entity>
     <a-entity id="rotating-entity" position="0 1.6 -2.0" animation="property: rotation; to: 0 360 0; dur: 10000; easing: linear; loop: true">
       <a-sphere position="0 0 0.5" radius="0.5" color="#FFFFFF"></a-sphere>
       <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
@@ -36,7 +37,7 @@
         if (evt.detail.y > 0.95 || evt.detail.y < -0.95 || evt.detail.x < -0.95 || evt.detail.x > 0.95) { 
             sound = new Audio('./public/oh-my-god-meme.mp3');
             sound.play();
-            camera = document.querySelector('[camera]');
+            camera = document.querySelector('camera');
             position = camera.getAttribute('position');
             console.log(position);
             camera.setAttribute('position', {
