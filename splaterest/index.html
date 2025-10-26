@@ -22,8 +22,6 @@
         const sourceID = urlParams.get('src');
         splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
     }
-
-    const SOUND = new Audio('./public/oh-my-god-meme.mp3');
     
     AFRAME.registerComponent('thumbstick-logging',{
       init: function () {
@@ -36,7 +34,16 @@
         if (evt.detail.x > 0.95) { console.log("RIGHT"); }
 
         if (evt.detail.y > 0.95 || evt.detail.y < -0.95 || evt.detail.x < -0.95 || evt.detail.x > 0.95) { 
-            SOUND.play();
+            sound = new Audio('./public/oh-my-god-meme.mp3');
+            sound.play();
+            camera = document.querySelector('[camera]');
+            position = camera.getAttribute('position');
+            console.log(position);
+            camera.setAttribute('position', {
+                x: position.x + (evt.detail.x * 0.1),
+                y: position.y,
+                z: position.z + (evt.detail.y * 0.1)
+            });
         }
       }
     });
