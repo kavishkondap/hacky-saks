@@ -25,7 +25,8 @@
     }
     
     AFRAME.registerComponent('thumbstick-logging',{
-      update: function () {
+      init: function () {
+        this.logThumbstick = this.logThumbstick.bind(this);
         this.el.addEventListener('thumbstickmoved', this.logThumbstick);
       },
       logThumbstick: function (evt) {
@@ -36,7 +37,7 @@
 
         sound = new Audio('./public/oh-my-god-meme.mp3');
         sound.play();
-        camera = document.querySelector('camera');
+        camera = document.querySelector('[camera]');
         position = camera.getAttribute('position');
         console.log(position);
         camera.setAttribute('position', {
