@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Splat Gallery</title>
+    <title>SplatMaps</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tiempos+Headline:wght@400;600;700&family=Charter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -54,6 +54,11 @@
             position: relative;
             height: calc(100vh - 150px);
             overflow: hidden;
+            cursor: grab;
+        }
+
+        .gallery-wrapper:active {
+            cursor: grabbing;
         }
 
         .masonry-container {
@@ -200,8 +205,8 @@
 </head>
 <body>
     <div class="header">
-        <h1>Splat Gallery</h1>
-        <p>Explore Gaussian Splats</p>
+        <h1>SplatMaps</h1>
+        <p>Navigate Reality, One Splat at a Time</p>
     </div>
 
     <div id="loading" class="loading">Loading gallery...</div>
@@ -289,19 +294,62 @@
             });
 
             let scrollPosition = 0;
-            const scrollSpeed = 0.5; // pixels per frame
+            const scrollSpeed = 0.75; // pixels per frame (1.5x faster)
             const originalHeight = container.offsetHeight / 2; // Half because we duplicated
+            let manualScrollOffset = 0;
+
+            // Handle manual scrolling with mouse wheel
+            wrapper.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                manualScrollOffset += e.deltaY;
+
+                // Wrap manual offset to allow infinite scrolling in both directions
+                while (manualScrollOffset < 0) {
+                    manualScrollOffset += originalHeight;
+                }
+                while (manualScrollOffset >= originalHeight) {
+                    manualScrollOffset -= originalHeight;
+                }
+            }, { passive: false });
+
+            // Handle touch scrolling for mobile
+            let touchStartY = 0;
+            let lastTouchY = 0;
+
+            wrapper.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                lastTouchY = touchStartY;
+            }, { passive: true });
+
+            wrapper.addEventListener('touchmove', (e) => {
+                const touchY = e.touches[0].clientY;
+                const deltaY = lastTouchY - touchY;
+                lastTouchY = touchY;
+
+                manualScrollOffset += deltaY;
+
+                // Wrap manual offset to allow infinite scrolling in both directions
+                while (manualScrollOffset < 0) {
+                    manualScrollOffset += originalHeight;
+                }
+                while (manualScrollOffset >= originalHeight) {
+                    manualScrollOffset -= originalHeight;
+                }
+            }, { passive: true });
 
             function animate() {
                 scrollPosition += scrollSpeed;
 
                 // If we've scrolled past the original content, reset seamlessly
                 if (scrollPosition >= originalHeight) {
-                    scrollPosition = 0;
+                    scrollPosition -= originalHeight;
                 }
 
+                // Combine automatic scroll with manual scroll offset
+                let totalScroll = (scrollPosition + manualScrollOffset) % originalHeight;
+
                 // Apply the scroll
-                container.style.transform = `translateY(-${scrollPosition}px)`;
+                container.style.transform = `translateY(-${totalScroll}px)`;
 
                 requestAnimationFrame(animate);
             }
