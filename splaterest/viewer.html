@@ -10,6 +10,7 @@
         <a-sphere position="0 0 0.5" radius="0.5" color="#EF2D5E"></a-sphere>
         <a-sphere position="0 0 -0.5" radius="0.5" color="#EF2D5E"></a-sphere>
       </a-entity>
+      <a-entity id="right-controller" meta-touch-control="hand: right" controller_actions></a-entity>
       <a-entity id="splat-viewer" gaussian_splatting="src: https://huggingface.co/cakewalk/splat-data/resolve/main/train.splat;" rotation="0 0 0" position="0 1.5 -2"></a-entity>
     </a-scene>
   </body>
@@ -19,7 +20,27 @@
     const splat = document.getElementById('splat-viewer');
     if (urlParams.has('src')) {
         const sourceID = urlParams.get('src');
-        splat.setAttribute('gaussian_splatting', "src: https://calhacks-hacky-saks.s3.us-east-2.amazonaws.com/" + sourceID + ";");
+        splat.setAttribute('gaussian_splatting', "src: " + sourceID + ";");
     }
+    if (urlParams.has('rot')) {
+      const rotation = urlParams.get('rot');
+      splat.setAttribute('rotation', rotation);
+    }
+    if (urlParams.has('pos')) {
+      const position = urlParams.get('pos');
+      splat.setAttribute('position', position);
+    }
+
+    AFRAME.registerComponent("controller_actions", {
+      init: function () {
+        this.logTrigger = this.logTrigger.bind(this)
+        this.el.addEventListener('triggerdown', this.logTrigger)
+      },
+      logTrigger: function (evt){
+        console.log("Triggered");
+      }
+    });
+
+
   </script>
 </html>
