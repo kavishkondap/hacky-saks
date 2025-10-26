@@ -17,7 +17,7 @@
 
   <script>
     document.querySelector('#rotating-entity').setAttribute('position', '0 .2 -2.0');
-
+    document.querySelector('[camera]').setAttribute('position', '0 .2 0');
     const urlParams = new URLSearchParams(window.location.search);
     const splat = document.getElementById('splat-viewer');
     if (urlParams.has('src')) {
@@ -34,13 +34,14 @@
       },
       logTrigger: function (evt) {
           document.querySelector('#rotating-entity').setAttribute('position', '0 .2 -2.0');
+          document.querySelector('[camera]').setAttribute('position', "0 .2 0");
       },
       logThumbstick: function (evt) {
         xdelta = evt.detail.x;
         ydelta = evt.detail.y;
 
-        document.querySelector('#splat-viewer').object3D.position.x += xdelta * 0.1;
-        document.querySelector('#splat-viewer').object3D.position.z += ydelta * 0.1;
+        
+        document.querySelector('[camera]').setAttribute('position', "0 1.6 0");
 
         if (evt.detail.x > 0.7 || evt.detail.x < -0.7 || evt.detail.y > 0.7 || evt.detail.y < -0.7) {
           document.querySelector('#rotating-entity').setAttribute('position', '0 1.6 -2.0');
